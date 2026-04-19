@@ -292,6 +292,12 @@ export class CommitmentRepository {
       .all(q, q) as Record<string, unknown>[];
     return rows.length ? rowToCommitment(rows[0]) : null;
   }
+
+  deleteSeededArtifacts(): number {
+    this.db.query("DELETE FROM commitment_event WHERE commitment_id IN (SELECT id FROM commitment WHERE source_message_id LIKE 'seed_%')").run();
+    const result = this.db.query("DELETE FROM commitment WHERE source_message_id LIKE 'seed_%'").run();
+    return Number(result.changes ?? 0);
+  }
 }
 
 export class ConversationRepository {
@@ -403,5 +409,10 @@ export class ManualReminderRepository {
 
   markDone(id: number): void {
     this.db.query("UPDATE manual_reminder SET status='done', updated_at=? WHERE id=?").run(nowIso(), id);
+  }
+
+  deleteSeededArtifacts(): number {
+    const result = this.db.query("DELETE FROM manual_reminder WHERE created_from_command='seed'").run();
+    return Number(result.changes ?? 0);
   }
 }

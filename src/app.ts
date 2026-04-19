@@ -13,6 +13,7 @@ import { GhostingService } from "./services/ghostingService";
 import { RecapService } from "./services/recapService";
 import { ReminderService } from "./services/reminderService";
 import { logger } from "./utils/logger";
+import { normalizeChatId } from "./utils/chatId";
 
 export class PromiseKeeperApp {
   readonly db: DB;
@@ -22,6 +23,7 @@ export class PromiseKeeperApp {
 
   private reminderService: ReminderService;
   private backfillService: BackfillService;
+  private recentSelfSends = new Map<string, number>();
 
   constructor(private config: AppConfig) {
     this.db = new DB(config.dbPath);
@@ -48,14 +50,18 @@ export class PromiseKeeperApp {
     });
 
     const sink = {
-      sendToControlThread: (text: string) => this.photon.sendMessage(config.controlThreadId, text),
+      sendToControlThread: async (text: string) => {
+        this.markSelfSend(config.controlThreadId, text);
+        await this.photon.sendMessage(config.controlThreadId, text);
+      },
+      hasRecentSelfSend: (chatId: string, text: string) => this.isRecentSelfSend(chatId, text),
       hasNativeScheduling: () => this.photon.hasNativeScheduling(),
       scheduleReminder: (id: string, dueAt: string, payload: Record<string, unknown>) =>
         this.photon.scheduleReminder(id, dueAt, payload),
       cancelReminder: (id: string) => this.photon.cancelReminder(id)
     };
 
-    this.watcher = new MessageWatcher(config.controlThreadId, router, commitmentService, sink);
+    this.watcher = new MessageWatcher(config.controlThreadId, config.debug, router, commitmentService, sink);
     this.reminderService = new ReminderService(commitments, manualReminders, sink, config);
     this.backfillService = new BackfillService(commitmentService);
 
@@ -80,6 +86,7 @@ export class PromiseKeeperApp {
 
   async start(): Promise<void> {
     await this.photon.startWatcher();
+    this.cleanupSeededArtifacts();
     await this.runBackfill();
     this.scheduler.start(() => this.reminderService.runDueChecks(), 45_000);
     logger.info("PromiseKeeper started");
@@ -97,5 +104,41 @@ export class PromiseKeeperApp {
     await this.photon.stopWatcher();
     this.db.close();
     logger.info("PromiseKeeper stopped");
+  }
+
+  private selfSendKey(chatId: string, text: string): string {
+    return normalizeChatId(chatId) + "::" + text.trim().toLowerCase();
+  }
+
+  private markSelfSend(chatId: string, text: string): void {
+    const key = this.selfSendKey(chatId, text);
+    this.recentSelfSends.set(key, Date.now());
+    this.pruneSelfSendCache();
+  }
+
+  private isRecentSelfSend(chatId: string, text: string): boolean {
+    const key = this.selfSendKey(chatId, text);
+    const ts = this.recentSelfSends.get(key);
+    if (!ts) return false;
+    return Date.now() - ts <= 30_000;
+  }
+
+  private pruneSelfSendCache(): void {
+    const now = Date.now();
+    for (const [key, ts] of this.recentSelfSends.entries()) {
+      if (now - ts > 30_000) this.recentSelfSends.delete(key);
+    }
+  }
+
+  private cleanupSeededArtifacts(): void {
+    if (this.config.demoMode) return;
+    const commitments = new CommitmentRepository(this.db.sqlite);
+    const manuals = new ManualReminderRepository(this.db.sqlite);
+    const removedCommitments = commitments.deleteSeededArtifacts();
+    const removedManualReminders = manuals.deleteSeededArtifacts();
+    logger.info("Live startup seeded cleanup", {
+      removedCommitments,
+      removedManualReminders
+    });
   }
 }

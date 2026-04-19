@@ -1,4 +1,5 @@
 import { IMessageSDK } from "@photon-ai/imessage-kit";
+import { normalizeChatId } from "../src/utils/chatId";
 
 async function main() {
   const sdk = new IMessageSDK();
@@ -23,6 +24,7 @@ async function main() {
       console.log(`name: ${name}`);
       console.log(`kind: ${kind}`);
       console.log(`chatId: ${chat.chatId}`);
+      console.log(`normalizedChatId: ${normalizeChatId(String(chat.chatId ?? ""))}`);
       console.log(`unreadCount: ${unreadCount}`);
       console.log("");
     });
@@ -38,4 +40,3 @@ main().catch((error) => {
   console.error(error);
   process.exit(1);
 });
-
