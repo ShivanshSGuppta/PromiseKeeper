@@ -52,13 +52,19 @@ export class PromiseKeeperApp {
       recap,
       config: this.configRef.current
     });
-    const controlThreadService = new ControlThreadService(users, manualReminders, this.configRef);
+    const applyRuntimeConfig = (next: AppConfig) => {
+      this.configRef.current = next;
+      router.updateConfig(next);
+      this.reminderService.updateConfig(next);
+    };
+    const controlThreadService = new ControlThreadService(users, manualReminders, this.configRef, applyRuntimeConfig);
 
     const sink = {
       sendToControlThread: async (text: string) => {
-        if (this.shouldThrottleReply(config.controlThreadId, text)) return;
-        this.markSelfSend(config.controlThreadId, text);
-        await this.photon.sendMessage(config.controlThreadId, text);
+        const chatId = this.configRef.current.controlThreadId;
+        if (this.shouldThrottleReply(chatId, text)) return;
+        this.markSelfSend(chatId, text);
+        await this.photon.sendMessage(chatId, text);
       },
       hasRecentSelfSend: (chatId: string, text: string) => this.isRecentSelfSend(chatId, text),
       hasNativeScheduling: () => this.photon.hasNativeScheduling(),
@@ -67,7 +73,14 @@ export class PromiseKeeperApp {
       cancelReminder: (id: string) => this.photon.cancelReminder(id)
     };
 
-    this.watcher = new MessageWatcher(config.controlThreadId, config.debug, router, controlThreadService, commitmentService, sink);
+    this.watcher = new MessageWatcher(
+      () => this.configRef.current.controlThreadId,
+      config.debug,
+      router,
+      controlThreadService,
+      commitmentService,
+      sink
+    );
     this.reminderService = new ReminderService(commitments, manualReminders, sink, this.configRef.current);
     this.backfillService = new BackfillService(commitmentService);
 
@@ -84,7 +97,7 @@ export class PromiseKeeperApp {
 
     const maybeUpdated = users.get("default");
     if (maybeUpdated) {
-      this.configRef.current = {
+      const next = {
         ...this.configRef.current,
         controlThreadId: maybeUpdated.controlThreadId,
         quietHoursStart: maybeUpdated.quietHoursStart,
@@ -92,7 +105,7 @@ export class PromiseKeeperApp {
         reminderStyle: maybeUpdated.reminderStyle,
         detectionSensitivity: maybeUpdated.detectionSensitivity
       };
-      router.updateConfig(this.configRef.current);
+      applyRuntimeConfig(next);
     }
   }
 

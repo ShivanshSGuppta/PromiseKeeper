@@ -12,20 +12,15 @@ export interface WatcherSink {
 
 export class MessageWatcher {
   private seen = new Set<string>();
-  private normalizedControlThreadId: string;
-  private normalizedControlThreadAddress: string;
 
   constructor(
-    private controlThreadId: string,
+    private getControlThreadId: () => string,
     private debugMode: boolean,
     private commands: CommandRouter,
     private controlThreadService: ControlThreadService,
     private commitmentService: CommitmentService,
     private sink: WatcherSink
-  ) {
-    this.normalizedControlThreadId = normalizeChatId(controlThreadId);
-    this.normalizedControlThreadAddress = extractAddressPart(controlThreadId);
-  }
+  ) {}
 
   async handleMessage(message: Message): Promise<void> {
     if (!message?.id || this.seen.has(message.id)) return;
@@ -47,7 +42,10 @@ export class MessageWatcher {
 
     const normalizedIncomingChatId = normalizeChatId(message.chatId);
     const normalizedIncomingAddress = extractAddressPart(message.chatId);
-    const controlMatch = isControlThreadMatch(message.chatId, this.controlThreadId);
+    const controlThreadId = this.getControlThreadId();
+    const normalizedControlThreadId = normalizeChatId(controlThreadId);
+    const normalizedControlThreadAddress = extractAddressPart(controlThreadId);
+    const controlMatch = isControlThreadMatch(message.chatId, controlThreadId);
 
     if (message.isOutgoing && this.sink.hasRecentSelfSend(message.chatId, message.text)) {
       if (this.debugMode) {
@@ -72,8 +70,8 @@ export class MessageWatcher {
         rawChatId: message.chatId,
         normalizedChatId: normalizedIncomingChatId,
         normalizedAddress: normalizedIncomingAddress,
-        configuredControlThread: this.normalizedControlThreadId,
-        configuredControlAddress: this.normalizedControlThreadAddress,
+        configuredControlThread: normalizedControlThreadId,
+        configuredControlAddress: normalizedControlThreadAddress,
         controlThreadMatch: controlMatch,
         route: routeTarget
       });

@@ -9,7 +9,7 @@ PromiseKeeper watches the promises you make in iMessage and makes sure you do no
 
 ## Why This Wins
 - Personal utility: everyone drops follow-ups; this catches real misses.
-- Conversation-native: runs fully in iMessage with command-first control.
+- Conversation-native: runs fully in iMessage with one unified control thread.
 - One-sentence explainability: it remembers what you said you’d do.
 - Originality: promise memory + ghosting risk is sharper than generic chat in Messages.
 
@@ -81,6 +81,11 @@ PromiseKeeper should never auto-message third parties without explicit user appr
 - `help`
 - `settings`
 
+You can also use plain language in the same thread:
+- `Code implementation due this week`
+- `quiet hours 11pm to 7am`
+- `enable native scheduler`
+
 ## Demo Mode
 Works without live iMessage/Photon connectivity.
 
@@ -131,6 +136,14 @@ The app hard-fails on startup in live mode if `PROMISEKEEPER_CONTROL_THREAD_ID` 
 
 ## Realistic Transcript
 See [`examples/sample-transcript.md`](/Users/ssg/Desktop/FacetForge/PromiseKeeper/promisekeeper/examples/sample-transcript.md).
+
+## Live Demo Proof
+- Run transcript: [`examples/live-run-transcript.md`](/Users/ssg/Desktop/FacetForge/PromiseKeeper/promisekeeper/examples/live-run-transcript.md)
+- Evidence checklist: [`examples/live-proof-checklist.md`](/Users/ssg/Desktop/FacetForge/PromiseKeeper/promisekeeper/examples/live-proof-checklist.md)
+- Screenshots:
+  - [`01-control-thread-help.png`](/Users/ssg/Desktop/FacetForge/PromiseKeeper/promisekeeper/examples/live-proof/screenshots/01-control-thread-help.png)
+  - [`03-live-control-thread-active.png`](/Users/ssg/Desktop/FacetForge/PromiseKeeper/promisekeeper/examples/live-proof/screenshots/03-live-control-thread-active.png)
+  - [`04-settings-and-freehand.png`](/Users/ssg/Desktop/FacetForge/PromiseKeeper/promisekeeper/examples/live-proof/screenshots/04-settings-and-freehand.png)
 
 ## Challenge Fit
 This is a Photon-native personal agent that:

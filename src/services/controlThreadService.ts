@@ -10,7 +10,8 @@ export class ControlThreadService {
   constructor(
     private users: UserRepository,
     private manualReminders: ManualReminderRepository,
-    private configRef: { current: AppConfig }
+    private configRef: { current: AppConfig },
+    private onConfigUpdated?: (next: AppConfig) => void
   ) {}
 
   private dedupeKey(chatId: string, text: string, intentType: string): string {
@@ -36,7 +37,7 @@ export class ControlThreadService {
     return [
       "Settings",
       "- control thread target: " + c.controlThreadId,
-      "- mode: " + (c.liveMode ? "live" : "demo"),
+      "- runtime: " + (c.liveMode ? "live" : "demo"),
       "- follow-up style: " + c.reminderStyle,
       "- reminder quiet hours: " + c.quietHoursStart + " to " + c.quietHoursEnd,
       "- auto-detection sensitivity: " + c.detectionSensitivity,
@@ -80,7 +81,8 @@ export class ControlThreadService {
     if (intent.type === "clarify") {
       return {
         handled: true,
-        response: "I can track tasks or update settings. Try: \"enable native scheduler\" or \"<task> due tomorrow\".",
+        response:
+          "Use commands or plain language in this thread. Try: \"what did I promise\", \"quiet hours 11pm to 7am\", or \"Submit assignment due Friday\".",
         debug: { ...debug, actionTaken: "clarify" }
       };
     }
@@ -110,5 +112,6 @@ export class ControlThreadService {
       enablePhotonScheduler:
         typeof patch.enablePhotonScheduler === "boolean" ? (patch.enablePhotonScheduler as boolean) : current.enablePhotonScheduler
     };
+    this.onConfigUpdated?.(this.configRef.current);
   }
 }

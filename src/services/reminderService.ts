@@ -20,6 +20,10 @@ export class ReminderService {
     private config: AppConfig
   ) {}
 
+  updateConfig(next: AppConfig): void {
+    this.config = next;
+  }
+
   private shouldNudge(c: Commitment): { ok: boolean; reason: string } {
     if (["done", "ignored", "canceled"].includes(c.status)) return { ok: false, reason: "closed_status" };
     if (c.lastReminderAt) {

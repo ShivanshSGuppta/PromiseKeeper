@@ -11,6 +11,7 @@ export const REMINDER_COOLDOWN_MS = 1000 * 60 * 90;
 export const DEFAULT_SOFT_DUE_HOUR = 20;
 
 export const HELP_TEXT = [
+  "Use commands or plain language in this thread.",
   "Commands:",
   "- what did I promise",
   "- due today",
@@ -22,7 +23,12 @@ export const HELP_TEXT = [
   "- remind me at <time> about <text>",
   "- ignore <id>",
   "- recap",
-  "- settings"
+  "- settings",
+  "",
+  "Freehand examples:",
+  '- "Code implementation due this week"',
+  '- "quiet hours 11pm to 7am"',
+  '- "enable native scheduler"'
 ].join("\n");
 
 export const STATUS_ACTIVE = new Set(["open", "due_soon", "overdue", "snoozed"]);

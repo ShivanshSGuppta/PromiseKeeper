@@ -4,6 +4,9 @@ import { lower } from "../utils/text";
 
 const SENSITIVITY = new Set(["strict", "balanced", "aggressive"]);
 const STYLE = new Set(["firm", "neutral", "soft"]);
+const TASK_VERBS = /\b(send|submit|finish|complete|review|call|reply|confirm|book|pay|share|deliver|text|draft|prepare|do)\b/;
+const DUE_CUES = /\b(due|by|before|tomorrow|tonight|next week|this week|friday|monday|tuesday|wednesday|thursday|saturday|sunday|am|pm)\b/;
+const TASK_NOUNS = /\b(assignment|project|deck|doc|document|receipt|report|proposal|homework|implementation|code)\b/;
 
 export function classifyIntent(text: string): IntentResult {
   const t = lower(text);
@@ -79,11 +82,11 @@ export function classifyIntent(text: string): IntentResult {
     };
   }
 
-  if (/\b(due|by|tomorrow|tonight|next week|assignment|project|submit|send|review|call|remind me)\b/.test(t)) {
+  const maybeTask = DUE_CUES.test(t) && (TASK_VERBS.test(t) || TASK_NOUNS.test(t) || /\bi(?:'ll| will)\b/.test(t));
+  if (maybeTask) {
     return { type: "task_capture", confidence: "medium", pattern: "declarative_task", payload: { text } };
   }
 
   if (t.length < 4 || /^(ok|hmm|huh|yo|sup)$/.test(t)) return { type: "ignore", confidence: "low", pattern: "smalltalk" };
   return { type: "clarify", confidence: "low", pattern: "no_match" };
 }
-
