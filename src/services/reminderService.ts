@@ -6,6 +6,7 @@ import { logger } from "../utils/logger";
 
 export interface ReminderSink {
   sendToControlThread(text: string): Promise<void>;
+  hasRecentSelfSend(chatId: string, text: string): boolean;
   hasNativeScheduling?(): boolean;
   scheduleReminder?(id: string, dueAt: string, payload: Record<string, unknown>): Promise<boolean>;
   cancelReminder?(id: string): Promise<boolean>;
@@ -60,6 +61,10 @@ export class ReminderService {
         c.status === "overdue"
           ? c.title + " is overdue. Send it now or send a delay update."
           : c.title + " is due soon. Either close it or send a status text.";
+      if (this.sink.hasRecentSelfSend(this.config.controlThreadId, msg)) {
+        logger.info("Reminder skipped", { commitmentId: c.id, reason: "reply_throttle" });
+        continue;
+      }
       await this.sink.sendToControlThread(msg);
       this.commitments.setReminderSent(c.id, nowIso());
       this.commitments.addEvent(c.id, "reminder_sent", { reason: "scheduled due check" });
@@ -68,7 +73,12 @@ export class ReminderService {
 
     const manualDue = this.manualReminders.listOpenDue(now);
     for (const m of manualDue) {
-      await this.sink.sendToControlThread("Reminder: " + m.text);
+      const msg = "Reminder: " + m.text;
+      if (this.sink.hasRecentSelfSend(this.config.controlThreadId, msg)) {
+        logger.info("Manual reminder skipped", { reminderId: m.id, reason: "reply_throttle" });
+        continue;
+      }
+      await this.sink.sendToControlThread(msg);
       this.manualReminders.markDone(m.id);
       logger.info("Manual reminder sent", { reminderId: m.id });
     }

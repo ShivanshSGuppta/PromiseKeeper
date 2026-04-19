@@ -3,6 +3,7 @@ import { CommandRouter } from "../commands/router";
 import { CommitmentService } from "../services/commitmentService";
 import { logger } from "../utils/logger";
 import { extractAddressPart, isControlThreadMatch, normalizeChatId } from "../utils/chatId";
+import { ControlThreadService } from "../services/controlThreadService";
 
 export interface WatcherSink {
   sendToControlThread(text: string): Promise<void>;
@@ -18,6 +19,7 @@ export class MessageWatcher {
     private controlThreadId: string,
     private debugMode: boolean,
     private commands: CommandRouter,
+    private controlThreadService: ControlThreadService,
     private commitmentService: CommitmentService,
     private sink: WatcherSink
   ) {
@@ -78,6 +80,12 @@ export class MessageWatcher {
     }
 
     if (routeTarget === "control_thread") {
+      const freehand = this.controlThreadService.handle(message);
+      if (this.debugMode) logger.debug("Intent decision", freehand.debug);
+      if (freehand.handled) {
+        if (freehand.response) await this.sink.sendToControlThread(freehand.response);
+        return;
+      }
       const response = this.commands.route(message.text);
       if (response) await this.sink.sendToControlThread(response);
       return;

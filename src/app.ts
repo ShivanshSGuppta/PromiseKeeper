@@ -14,6 +14,7 @@ import { RecapService } from "./services/recapService";
 import { ReminderService } from "./services/reminderService";
 import { logger } from "./utils/logger";
 import { normalizeChatId } from "./utils/chatId";
+import { ControlThreadService } from "./services/controlThreadService";
 
 export class PromiseKeeperApp {
   readonly db: DB;
@@ -24,8 +25,11 @@ export class PromiseKeeperApp {
   private reminderService: ReminderService;
   private backfillService: BackfillService;
   private recentSelfSends = new Map<string, number>();
+  private replyThrottle = new Map<string, number>();
+  private configRef: { current: AppConfig };
 
   constructor(private config: AppConfig) {
+    this.configRef = { current: config };
     this.db = new DB(config.dbPath);
     runMigrations(this.db);
 
@@ -46,11 +50,13 @@ export class PromiseKeeperApp {
       drafting,
       ghosting,
       recap,
-      config
+      config: this.configRef.current
     });
+    const controlThreadService = new ControlThreadService(users, manualReminders, this.configRef);
 
     const sink = {
       sendToControlThread: async (text: string) => {
+        if (this.shouldThrottleReply(config.controlThreadId, text)) return;
         this.markSelfSend(config.controlThreadId, text);
         await this.photon.sendMessage(config.controlThreadId, text);
       },
@@ -61,20 +67,33 @@ export class PromiseKeeperApp {
       cancelReminder: (id: string) => this.photon.cancelReminder(id)
     };
 
-    this.watcher = new MessageWatcher(config.controlThreadId, config.debug, router, commitmentService, sink);
-    this.reminderService = new ReminderService(commitments, manualReminders, sink, config);
+    this.watcher = new MessageWatcher(config.controlThreadId, config.debug, router, controlThreadService, commitmentService, sink);
+    this.reminderService = new ReminderService(commitments, manualReminders, sink, this.configRef.current);
     this.backfillService = new BackfillService(commitmentService);
 
     users.upsert({
       id: "default",
       displayName: "Owner",
-      controlThreadId: config.controlThreadId,
-      timezone: config.timezone,
-      quietHoursStart: config.quietHoursStart,
-      quietHoursEnd: config.quietHoursEnd,
-      reminderStyle: config.reminderStyle,
-      detectionSensitivity: config.detectionSensitivity
+      controlThreadId: this.configRef.current.controlThreadId,
+      timezone: this.configRef.current.timezone,
+      quietHoursStart: this.configRef.current.quietHoursStart,
+      quietHoursEnd: this.configRef.current.quietHoursEnd,
+      reminderStyle: this.configRef.current.reminderStyle,
+      detectionSensitivity: this.configRef.current.detectionSensitivity
     });
+
+    const maybeUpdated = users.get("default");
+    if (maybeUpdated) {
+      this.configRef.current = {
+        ...this.configRef.current,
+        controlThreadId: maybeUpdated.controlThreadId,
+        quietHoursStart: maybeUpdated.quietHoursStart,
+        quietHoursEnd: maybeUpdated.quietHoursEnd,
+        reminderStyle: maybeUpdated.reminderStyle,
+        detectionSensitivity: maybeUpdated.detectionSensitivity
+      };
+      router.updateConfig(this.configRef.current);
+    }
   }
 
   async init(): Promise<void> {
@@ -130,8 +149,20 @@ export class PromiseKeeperApp {
     }
   }
 
+  private shouldThrottleReply(chatId: string, text: string): boolean {
+    const key = this.selfSendKey(chatId, text);
+    const ts = this.replyThrottle.get(key);
+    const now = Date.now();
+    if (ts && now - ts < 30_000) return true;
+    this.replyThrottle.set(key, now);
+    for (const [k, t] of this.replyThrottle.entries()) {
+      if (now - t > 30_000) this.replyThrottle.delete(k);
+    }
+    return false;
+  }
+
   private cleanupSeededArtifacts(): void {
-    if (this.config.demoMode) return;
+    if (this.configRef.current.demoMode) return;
     const commitments = new CommitmentRepository(this.db.sqlite);
     const manuals = new ManualReminderRepository(this.db.sqlite);
     const removedCommitments = commitments.deleteSeededArtifacts();

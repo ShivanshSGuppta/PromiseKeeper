@@ -80,6 +80,33 @@ export class UserRepository {
       updatedAt: String(row.updated_at)
     };
   }
+
+  updateSettings(
+    id: string,
+    updates: Partial<Pick<UserProfile, "controlThreadId" | "quietHoursStart" | "quietHoursEnd" | "reminderStyle" | "detectionSensitivity">>
+  ): UserProfile | null {
+    const existing = this.get(id);
+    if (!existing) return null;
+    const merged = {
+      ...existing,
+      controlThreadId: updates.controlThreadId ?? existing.controlThreadId,
+      quietHoursStart: updates.quietHoursStart ?? existing.quietHoursStart,
+      quietHoursEnd: updates.quietHoursEnd ?? existing.quietHoursEnd,
+      reminderStyle: updates.reminderStyle ?? existing.reminderStyle,
+      detectionSensitivity: updates.detectionSensitivity ?? existing.detectionSensitivity
+    };
+    this.upsert({
+      id: merged.id,
+      displayName: merged.displayName,
+      controlThreadId: merged.controlThreadId,
+      timezone: merged.timezone,
+      quietHoursStart: merged.quietHoursStart,
+      quietHoursEnd: merged.quietHoursEnd,
+      reminderStyle: merged.reminderStyle,
+      detectionSensitivity: merged.detectionSensitivity
+    });
+    return this.get(id);
+  }
 }
 
 type CreateCommitmentInput = Omit<

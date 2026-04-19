@@ -50,5 +50,8 @@ export class CommandRouter {
 
     return null;
   }
-}
 
+  updateConfig(next: AppConfig): void {
+    this.deps.config = next;
+  }
+}

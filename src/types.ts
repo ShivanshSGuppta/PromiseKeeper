@@ -157,3 +157,12 @@ export interface AppConfig {
   enableLlm: boolean;
   enablePhotonScheduler: boolean;
 }
+
+export type IntentType = "command" | "settings_update" | "task_capture" | "clarify" | "ignore";
+
+export interface IntentResult {
+  type: IntentType;
+  confidence: "high" | "medium" | "low";
+  pattern?: string;
+  payload?: Record<string, unknown>;
+}
