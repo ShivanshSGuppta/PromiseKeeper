@@ -134,17 +134,6 @@ The app hard-fails on startup in live mode if `PROMISEKEEPER_CONTROL_THREAD_ID` 
 5. Send `mark done 1`.
 6. Send `who am I ghosting`.
 
-## Realistic Transcript
-See [`examples/sample-transcript.md`](/Users/ssg/Desktop/FacetForge/PromiseKeeper/promisekeeper/examples/sample-transcript.md).
-
-## Live Demo Proof
-- Run transcript: [`examples/live-run-transcript.md`](/Users/ssg/Desktop/FacetForge/PromiseKeeper/promisekeeper/examples/live-run-transcript.md)
-- Evidence checklist: [`examples/live-proof-checklist.md`](/Users/ssg/Desktop/FacetForge/PromiseKeeper/promisekeeper/examples/live-proof-checklist.md)
-- Screenshots:
-  - [`01-control-thread-help.png`](/Users/ssg/Desktop/FacetForge/PromiseKeeper/promisekeeper/examples/live-proof/screenshots/01-control-thread-help.png)
-  - [`03-live-control-thread-active.png`](/Users/ssg/Desktop/FacetForge/PromiseKeeper/promisekeeper/examples/live-proof/screenshots/03-live-control-thread-active.png)
-  - [`04-settings-and-freehand.png`](/Users/ssg/Desktop/FacetForge/PromiseKeeper/promisekeeper/examples/live-proof/screenshots/04-settings-and-freehand.png)
-
 ## Challenge Fit
 This is a Photon-native personal agent that:
 - reads/watches message streams including own outgoing messages,
