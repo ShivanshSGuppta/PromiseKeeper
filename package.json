@@ -1,0 +1,21 @@
+{
+  "name": "promisekeeper",
+  "version": "0.1.0",
+  "description": "PromiseKeeper watches your iMessage promises and makes sure you close loops.",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "demo": "bun run src/demo/transcript.ts",
+    "seed": "bun run src/demo/seed.ts",
+    "smoke:live": "bun run src/demo/smoke.ts",
+    "find-control-thread": "bun run scripts/find-control-thread.ts",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@photon-ai/imessage-kit": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "typescript": "^5.9.3"
+  }
+}
